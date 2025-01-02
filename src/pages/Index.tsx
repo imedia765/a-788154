@@ -9,6 +9,7 @@ import SidePanel from '@/components/SidePanel';
 import TotalCount from '@/components/TotalCount';
 import MemberSearch from '@/components/MemberSearch';
 import { useState } from 'react';
+import { Switch } from "@/components/ui/switch";
 import { Bell, Globe, Users, UserCheck } from 'lucide-react';
 
 const Index = () => {
@@ -58,6 +59,19 @@ const Index = () => {
       
       console.log('Fetched members count:', allMembers.length);
       return allMembers as Tables<'members'>[];
+    },
+  });
+
+  const { data: collectors } = useQuery({
+    queryKey: ['members_collectors'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('members_collectors')
+        .select('*')
+        .throwOnError();
+      
+      if (error) throw error;
+      return data;
     },
   });
 
