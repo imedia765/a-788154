@@ -7,12 +7,13 @@ import CustomerRequests from '@/components/CustomerRequests';
 import CollectorsList from '@/components/CollectorsList';
 import SidePanel from '@/components/SidePanel';
 import TotalCount from '@/components/TotalCount';
+import MemberSearch from '@/components/MemberSearch';
 import { useState } from 'react';
-import { Switch } from "@/components/ui/switch";
 import { Bell, Globe, Users, UserCheck } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: members, isLoading: membersLoading, error: membersError } = useQuery({
     queryKey: ['members'],
@@ -60,17 +61,15 @@ const Index = () => {
     },
   });
 
-  const { data: collectors } = useQuery({
-    queryKey: ['members_collectors'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('members_collectors')
-        .select('*')
-        .throwOnError();
-      
-      if (error) throw error;
-      return data;
-    },
+  const filteredMembers = members?.filter(member => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      member.full_name?.toLowerCase().includes(searchLower) ||
+      member.member_number?.toLowerCase().includes(searchLower) ||
+      member.collector?.toLowerCase().includes(searchLower)
+    );
   });
 
   const renderContent = () => {
@@ -115,18 +114,22 @@ const Index = () => {
               <p className="text-dashboard-muted">View and manage member information</p>
             </header>
             <TotalCount 
-              count={members?.length || 0}
+              count={filteredMembers?.length || 0}
               label="Total Members"
               icon={<Users className="w-6 h-6 text-blue-400" />}
+            />
+            <MemberSearch 
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
             />
             <div className="space-y-4">
               {membersLoading ? (
                 <div className="text-center py-4">Loading members...</div>
               ) : membersError ? (
                 <div className="text-center py-4 text-red-500">Error loading members: {membersError.message}</div>
-              ) : members && members.length > 0 ? (
+              ) : filteredMembers && filteredMembers.length > 0 ? (
                 <div className="grid gap-4">
-                  {members.map((member) => (
+                  {filteredMembers.map((member) => (
                     <div 
                       key={member.id} 
                       className="bg-dashboard-card p-4 rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300"
