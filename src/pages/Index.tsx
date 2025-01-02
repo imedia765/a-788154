@@ -20,45 +20,19 @@ const Index = () => {
     queryKey: ['members'],
     queryFn: async () => {
       console.log('Fetching members...');
-      // First, let's get the total count
-      const { count, error: countError } = await supabase
+      const { data, error } = await supabase
         .from('members')
-        .select('*', { count: 'exact', head: true });
+        .select('*')
+        .order('created_at', { ascending: false })
+        .throwOnError();
       
-      if (countError) {
-        console.error('Error getting count:', countError);
-        throw countError;
+      if (error) {
+        console.error('Error fetching members:', error);
+        throw error;
       }
       
-      console.log('Total members count:', count);
-
-      // Now fetch all members using pagination
-      let allMembers: Tables<'members'>[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      
-      while (true) {
-        const { data, error } = await supabase
-          .from('members')
-          .select('*')
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error fetching members:', error);
-          throw error;
-        }
-        
-        if (!data || data.length === 0) break;
-        
-        allMembers = [...allMembers, ...data];
-        if (data.length < pageSize) break;
-        
-        page++;
-      }
-      
-      console.log('Fetched members count:', allMembers.length);
-      return allMembers as Tables<'members'>[];
+      console.log('Fetched members count:', data?.length);
+      return data as Tables<'members'>[];
     },
   });
 

@@ -46,12 +46,18 @@ const CollectorsList = () => {
   const { data: members } = useQuery({
     queryKey: ['members'],
     queryFn: async () => {
+      console.log('Fetching all members...');
       const { data, error } = await supabase
         .from('members')
         .select('*')
         .throwOnError();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching members:', error);
+        throw error;
+      }
+      
+      console.log('Fetched total members:', data?.length);
       return data as Member[];
     },
   });
