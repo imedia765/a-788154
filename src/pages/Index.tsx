@@ -18,6 +18,19 @@ const Index = () => {
     queryKey: ['members'],
     queryFn: async () => {
       console.log('Fetching members...');
+      // First, let's get the total count
+      const { count, error: countError } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error('Error getting count:', countError);
+        throw countError;
+      }
+      
+      console.log('Total members count:', count);
+
+      // Now fetch all members
       const { data, error } = await supabase
         .from('members')
         .select('*')
@@ -28,7 +41,8 @@ const Index = () => {
         console.error('Error fetching members:', error);
         throw error;
       }
-      console.log('Fetched members:', data);
+      
+      console.log('Fetched members count:', data?.length);
       return data as Tables<'members'>[];
     },
   });
