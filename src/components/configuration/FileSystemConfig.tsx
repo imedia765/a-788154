@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 
 export const FileSystemConfig = () => {
   return (
-    <Card>
+    <Card className="border-[#33C3F0]/20 bg-gradient-to-br from-background to-[#33C3F0]/5">
       <CardHeader>
         <CardTitle>File System Configuration</CardTitle>
         <CardDescription>Configure file system settings and permissions</CardDescription>
@@ -21,7 +21,7 @@ export const FileSystemConfig = () => {
         
         <div className="space-y-2">
           <label className="text-sm font-medium">Project Directory</label>
-          <Input placeholder="Enter project directory path" />
+          <Input placeholder="Enter project directory path" className="border-[#33C3F0]/20" />
         </div>
       </CardContent>
     </Card>

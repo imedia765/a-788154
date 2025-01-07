@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export const TerminalConfig = () => {
   return (
-    <Card>
+    <Card className="border-[#D6BCFA]/20 bg-gradient-to-br from-background to-[#D6BCFA]/5">
       <CardHeader>
         <CardTitle>Terminal Configuration</CardTitle>
         <CardDescription>Configure terminal settings and behavior</CardDescription>
@@ -22,7 +22,7 @@ export const TerminalConfig = () => {
         <div className="space-y-2">
           <label className="text-sm font-medium">Shell Type</label>
           <Select>
-            <SelectTrigger>
+            <SelectTrigger className="border-[#D6BCFA]/20">
               <SelectValue placeholder="Select shell type" />
             </SelectTrigger>
             <SelectContent>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export const VersionControlConfig = () => {
   return (
-    <Card>
+    <Card className="border-[#E5DEFF]/20 bg-gradient-to-br from-background to-[#E5DEFF]/5">
       <CardHeader>
         <CardTitle>Version Control Configuration</CardTitle>
         <CardDescription>Configure version control settings and repositories</CardDescription>
@@ -13,20 +13,22 @@ export const VersionControlConfig = () => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Git Username</label>
-          <Input placeholder="Enter Git username" />
+          <Input placeholder="Enter Git username" className="border-[#E5DEFF]/20" />
         </div>
         
         <div className="space-y-2">
           <label className="text-sm font-medium">Git Email</label>
-          <Input placeholder="Enter Git email" />
+          <Input placeholder="Enter Git email" className="border-[#E5DEFF]/20" />
         </div>
         
         <div className="space-y-2">
           <label className="text-sm font-medium">Default Branch</label>
-          <Input placeholder="Enter default branch name" defaultValue="main" />
+          <Input placeholder="Enter default branch name" defaultValue="main" className="border-[#E5DEFF]/20" />
         </div>
         
-        <Button className="w-full">Save Git Configuration</Button>
+        <Button className="w-full bg-gradient-to-r from-[#E5DEFF] to-[#D6BCFA] text-primary-foreground hover:from-[#D6BCFA] hover:to-[#9b87f5]">
+          Save Git Configuration
+        </Button>
       </CardContent>
     </Card>
   );

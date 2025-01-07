@@ -17,12 +17,11 @@ export const LLMConfiguration = () => {
   }, []);
 
   const handleSave = async () => {
-    // TODO: Implement save functionality when backend is ready
     console.log('Saving configuration:', { selectedProvider, apiKey, baseUrl });
   };
 
   return (
-    <Card>
+    <Card className="border-[#9b87f5]/20 bg-gradient-to-br from-background to-[#9b87f5]/5">
       <CardHeader>
         <CardTitle>LLM Provider Configuration</CardTitle>
         <CardDescription>Configure your LLM providers and API settings</CardDescription>
@@ -32,9 +31,7 @@ export const LLMConfiguration = () => {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {error}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         
@@ -45,9 +42,6 @@ export const LLMConfiguration = () => {
             selectedProvider={selectedProvider}
             onProviderChange={setSelectedProvider}
           />
-          {providers.length === 0 && !isLoading && (
-            <p className="text-sm text-muted-foreground">No providers available. Using mock data.</p>
-          )}
         </div>
         
         <div className="space-y-2">
@@ -57,6 +51,7 @@ export const LLMConfiguration = () => {
             placeholder="Enter your API key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
+            className="border-[#9b87f5]/20"
           />
         </div>
         
@@ -66,13 +61,14 @@ export const LLMConfiguration = () => {
             placeholder="Enter base URL if using custom endpoint"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
+            className="border-[#9b87f5]/20"
           />
         </div>
         
         <Button 
           onClick={handleSave}
           disabled={isLoading}
-          className="w-full"
+          className="w-full bg-gradient-to-r from-[#9b87f5] to-[#7E69AB] hover:from-[#7E69AB] hover:to-[#6E59A5]"
         >
           Save Configuration
         </Button>
