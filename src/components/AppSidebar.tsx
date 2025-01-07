@@ -1,4 +1,4 @@
-import { Home, Github, FolderTree } from "lucide-react"
+import { FileTree, GitBranch, PackageSearch, BarChart2, Code2, Github } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +37,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <h2 className="text-lg font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-          AI Dev Assistant
+          AI Code Generator
         </h2>
         <Button 
           onClick={handleGitLogin}
@@ -49,19 +49,37 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Project Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton>
-                  <Home className="mr-2 h-4 w-4" />
-                  <span>Dashboard</span>
+                  <Code2 className="mr-2 h-4 w-4" />
+                  <span>Code Generator</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton>
-                  <FolderTree className="mr-2 h-4 w-4" />
-                  <span>Files</span>
+                  <FileTree className="mr-2 h-4 w-4" />
+                  <span>Project Structure</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton>
+                  <PackageSearch className="mr-2 h-4 w-4" />
+                  <span>Dependencies</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton>
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  <span>Project Stats</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton>
+                  <GitBranch className="mr-2 h-4 w-4" />
+                  <span>Version Control</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
