@@ -1,4 +1,4 @@
-import { FileTree, GitBranch, PackageSearch, BarChart2, Code2, Github } from "lucide-react"
+import { FolderTree, GitBranch, PackageSearch, BarChart2, Code2, Github } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -60,7 +60,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton>
-                  <FileTree className="mr-2 h-4 w-4" />
+                  <FolderTree className="mr-2 h-4 w-4" />
                   <span>Project Structure</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
