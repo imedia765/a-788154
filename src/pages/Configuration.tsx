@@ -4,6 +4,7 @@ import { FileSystemConfig } from '@/components/configuration/FileSystemConfig';
 import { TerminalConfig } from '@/components/configuration/TerminalConfig';
 import { VersionControlConfig } from '@/components/configuration/VersionControlConfig';
 import { DatabaseConfig } from '@/components/configuration/DatabaseConfig';
+import { SecurityConfig } from '@/components/configuration/SecurityConfig';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
@@ -21,6 +22,19 @@ const Configuration = () => {
 
       <ScrollArea className="h-[calc(100vh-12rem)]">
         <div className="grid gap-8">
+          {/* Security Configuration Section */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-gradient-to-b from-[#8B5CF6] to-[#6E59A5] rounded-full" />
+              <h2 className="text-2xl font-semibold">Security Settings</h2>
+            </div>
+            <div className="pl-4">
+              <SecurityConfig />
+            </div>
+          </section>
+
+          <Separator className="my-4 bg-gradient-to-r from-transparent via-[#7E69AB]/20 to-transparent" />
+
           {/* LLM Configuration Section */}
           <section className="space-y-4">
             <div className="flex items-center gap-2">
