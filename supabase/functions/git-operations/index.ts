@@ -96,12 +96,18 @@ const parseGitHubUrl = (url: string) => {
 };
 
 serve(async (req) => {
-  const logs = [];
-  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      }
+    });
   }
 
+  const logs = [];
+  
   try {
     const { type, sourceRepoId, targetRepoId, pushType } = await req.json();
     logs.push(log.info('Received operation request', { type, sourceRepoId, targetRepoId, pushType }));
@@ -164,12 +170,12 @@ serve(async (req) => {
       }));
 
       // Update target repository
-      const { owner: targetOwner, repo: targetRepo } = parseGitHubUrl(targetRepo.url);
+      const { owner: targetOwner, repo: targetRepoName } = parseGitHubUrl(targetRepo.url);
       
       try {
         const updateRef = await octokit.rest.git.updateRef({
           owner: targetOwner,
-          repo: targetRepo,
+          repo: targetRepoName,
           ref: `heads/${targetRepo.default_branch || 'main'}`,
           sha: sourceCommit.sha,
           force: pushType === 'force'
