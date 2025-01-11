@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Repositories from "./pages/Repositories";
 import WebTools from "./pages/WebTools";
+import Home from "./pages/Home";
 
 const queryClient = new QueryClient();
 
@@ -18,7 +19,7 @@ function App() {
         <Router>
           <SidebarProvider>
             <Routes>
-              <Route path="/" element={<Repositories />} />
+              <Route path="/" element={<Home />} />
               <Route path="/repositories" element={<Repositories />} />
               <Route path="/web-tools" element={<WebTools />} />
             </Routes>
