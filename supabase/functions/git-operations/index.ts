@@ -95,6 +95,41 @@ const parseGitHubUrl = (url: string) => {
   }
 };
 
+async function createOrUpdateRef(octokit: Octokit, owner: string, repo: string, ref: string, sha: string, force: boolean) {
+  try {
+    // First try to get the reference
+    try {
+      await octokit.rest.git.getRef({
+        owner,
+        repo,
+        ref: ref.replace('refs/', '')
+      });
+      
+      // If reference exists, update it
+      return await octokit.rest.git.updateRef({
+        owner,
+        repo,
+        ref: ref.replace('refs/', ''),
+        sha,
+        force
+      });
+    } catch (error) {
+      if (error.status === 404) {
+        // If reference doesn't exist, create it
+        return await octokit.rest.git.createRef({
+          owner,
+          repo,
+          ref,
+          sha
+        });
+      }
+      throw error;
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -171,15 +206,17 @@ serve(async (req) => {
 
       // Update target repository
       const { owner: targetOwner, repo: targetRepoName } = parseGitHubUrl(targetRepo.url);
+      const branchRef = `refs/heads/${targetRepo.default_branch || 'main'}`;
       
       try {
-        const updateRef = await octokit.rest.git.updateRef({
-          owner: targetOwner,
-          repo: targetRepoName,
-          ref: `heads/${targetRepo.default_branch || 'main'}`,
-          sha: sourceCommit.sha,
-          force: pushType === 'force'
-        });
+        const updateRef = await createOrUpdateRef(
+          octokit,
+          targetOwner,
+          targetRepoName,
+          branchRef,
+          sourceCommit.sha,
+          pushType === 'force' || pushType === 'force-with-lease'
+        );
 
         logs.push(log.success('Push operation completed', {
           targetRepo: targetRepo.url,
@@ -271,7 +308,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error.message || 'Unknown error occurred',
         logs,
         details: {
           name: error.name,
