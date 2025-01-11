@@ -26,10 +26,16 @@ export interface ConsoleLog {
   message: string;
   type: 'error' | 'success' | 'info';
   timestamp: string;
+  data?: any;
 }
 
 export interface VerificationStatus {
   checking: boolean;
   success?: boolean;
   message?: string;
+  details?: {
+    sourceCommit?: string;
+    targetCommit?: string;
+    syncTime?: string;
+  };
 }

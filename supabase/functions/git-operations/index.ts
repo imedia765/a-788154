@@ -11,6 +11,7 @@ const log = {
   success: (message: string, data?: any) => {
     console.log('\x1b[32m%s\x1b[0m', '✓ SUCCESS:', message);
     if (data) console.log(JSON.stringify(data, null, 2));
+    return { type: 'success', message, data, timestamp: new Date().toISOString() };
   },
   error: (message: string, error?: any) => {
     console.error('\x1b[31m%s\x1b[0m', '✗ ERROR:', message);
@@ -22,17 +23,58 @@ const log = {
         console.error('\x1b[31m%s\x1b[0m', '  Response Data:');
         console.error(JSON.stringify(error.response.data, null, 2));
       }
-      if (error.stack) {
-        console.error('\x1b[31m%s\x1b[0m', '  Stack Trace:');
-        console.error(error.stack);
-      }
     }
+    return { type: 'error', message, error, timestamp: new Date().toISOString() };
   },
   info: (message: string, data?: any) => {
     console.log('\x1b[36m%s\x1b[0m', 'ℹ INFO:', message);
     if (data) console.log(JSON.stringify(data, null, 2));
+    return { type: 'info', message, data, timestamp: new Date().toISOString() };
   }
 };
+
+async function getRepoDetails(url: string, octokit: Octokit) {
+  const logs = [];
+  try {
+    logs.push(log.info('Starting repository details fetch', { url }));
+    
+    const { owner, repo } = parseGitHubUrl(url);
+    logs.push(log.info('Parsed GitHub URL', { owner, repo }));
+
+    const [repoInfo, branches, lastCommits] = await Promise.all([
+      octokit.rest.repos.get({ owner, repo }),
+      octokit.rest.repos.listBranches({ owner, repo }),
+      octokit.rest.repos.listCommits({ owner, repo, per_page: 5 })
+    ]);
+
+    logs.push(log.success('Repository details fetched successfully', {
+      defaultBranch: repoInfo.data.default_branch,
+      branchCount: branches.data.length,
+      commitCount: lastCommits.data.length
+    }));
+
+    return {
+      logs,
+      details: {
+        defaultBranch: repoInfo.data.default_branch,
+        branches: branches.data.map(b => ({
+          name: b.name,
+          protected: b.protected,
+          sha: b.commit.sha
+        })),
+        lastCommits: lastCommits.data.map(c => ({
+          sha: c.sha,
+          message: c.commit.message,
+          date: c.commit.author?.date,
+          author: c.commit.author?.name
+        }))
+      }
+    };
+  } catch (error) {
+    logs.push(log.error('Error fetching repository details', error));
+    throw { error, logs };
+  }
+}
 
 const parseGitHubUrl = (url: string) => {
   try {
@@ -53,48 +95,16 @@ const parseGitHubUrl = (url: string) => {
   }
 };
 
-const getRepoDetails = async (url: string, octokit: Octokit) => {
-  try {
-    const { owner, repo } = parseGitHubUrl(url);
-    log.info('Fetching details for repository:', { owner, repo });
-
-    const [repoInfo, branches, lastCommits] = await Promise.all([
-      octokit.rest.repos.get({ owner, repo }),
-      octokit.rest.repos.listBranches({ owner, repo }),
-      octokit.rest.repos.listCommits({ owner, repo, per_page: 5 })
-    ]);
-
-    log.success('Repository details fetched successfully');
-
-    return {
-      defaultBranch: repoInfo.data.default_branch,
-      branches: branches.data.map(b => ({
-        name: b.name,
-        protected: b.protected,
-        sha: b.commit.sha
-      })),
-      lastCommits: lastCommits.data.map(c => ({
-        sha: c.sha,
-        message: c.commit.message,
-        date: c.commit.author?.date,
-        author: c.commit.author?.name
-      }))
-    };
-  } catch (error) {
-    log.error('Error fetching repository details:', error);
-    throw error;
-  }
-};
-
 serve(async (req) => {
-  // Handle CORS preflight requests
+  const logs = [];
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { type, sourceRepoId } = await req.json();
-    log.info('Received operation:', { type, sourceRepoId });
+    const { type, sourceRepoId, targetRepoId, pushType } = await req.json();
+    logs.push(log.info('Received operation request', { type, sourceRepoId, targetRepoId, pushType }));
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -103,7 +113,7 @@ serve(async (req) => {
 
     const githubToken = Deno.env.get('GITHUB_ACCESS_TOKEN');
     if (!githubToken) {
-      log.error('GitHub token not found');
+      logs.push(log.error('GitHub token not found'));
       throw new Error('GitHub token not configured');
     }
 
@@ -111,10 +121,88 @@ serve(async (req) => {
       auth: githubToken
     });
 
-    if (type === 'getLastCommit') {
-      log.info('Getting repository details for:', sourceRepoId);
+    if (type === 'push') {
+      logs.push(log.info('Starting Git push operation', { sourceRepoId, targetRepoId, pushType }));
       
-      // Fetch the repository URL from the database
+      // Fetch source and target repo details
+      const { data: sourceRepo } = await supabaseClient
+        .from('repositories')
+        .select('*')
+        .eq('id', sourceRepoId)
+        .single();
+      
+      const { data: targetRepo } = await supabaseClient
+        .from('repositories')
+        .select('*')
+        .eq('id', targetRepoId)
+        .single();
+
+      if (!sourceRepo || !targetRepo) {
+        logs.push(log.error('Repository not found', { sourceRepoId, targetRepoId }));
+        throw new Error('Repository not found');
+      }
+
+      logs.push(log.info('Repositories found', {
+        source: { url: sourceRepo.url, branch: sourceRepo.default_branch },
+        target: { url: targetRepo.url, branch: targetRepo.default_branch }
+      }));
+
+      // Get latest commit from source
+      const sourceDetails = await getRepoDetails(sourceRepo.url, octokit);
+      logs.push(...sourceDetails.logs);
+
+      const sourceCommit = sourceDetails.details.lastCommits[0];
+      if (!sourceCommit) {
+        logs.push(log.error('No commits found in source repository'));
+        throw new Error('No commits found in source repository');
+      }
+
+      logs.push(log.info('Source commit details', {
+        sha: sourceCommit.sha,
+        message: sourceCommit.message,
+        date: sourceCommit.date
+      }));
+
+      // Update target repository
+      const { owner: targetOwner, repo: targetRepo } = parseGitHubUrl(targetRepo.url);
+      
+      try {
+        const updateRef = await octokit.rest.git.updateRef({
+          owner: targetOwner,
+          repo: targetRepo,
+          ref: `heads/${targetRepo.default_branch || 'main'}`,
+          sha: sourceCommit.sha,
+          force: pushType === 'force'
+        });
+
+        logs.push(log.success('Push operation completed', {
+          targetRepo: targetRepo.url,
+          ref: updateRef.data.ref,
+          sha: updateRef.data.object.sha
+        }));
+
+        // Update repository status in database
+        await supabaseClient
+          .from('repositories')
+          .update({
+            last_commit: sourceCommit.sha,
+            last_commit_date: sourceCommit.date,
+            last_sync: new Date().toISOString(),
+            status: 'synced'
+          })
+          .eq('id', targetRepoId);
+
+        logs.push(log.success('Repository status updated in database'));
+
+      } catch (error) {
+        logs.push(log.error('Push operation failed', error));
+        throw error;
+      }
+    }
+
+    if (type === 'getLastCommit') {
+      logs.push(log.info('Getting repository details', { sourceRepoId }));
+      
       const { data: repoData, error: repoError } = await supabaseClient
         .from('repositories')
         .select('url')
@@ -122,20 +210,20 @@ serve(async (req) => {
         .single();
 
       if (repoError) {
-        log.error('Error fetching repository:', repoError);
+        logs.push(log.error('Error fetching repository', repoError));
         throw repoError;
       }
 
       if (!repoData?.url) {
+        logs.push(log.error('Repository URL not found'));
         throw new Error('Repository URL not found');
       }
 
       const repoDetails = await getRepoDetails(repoData.url, octokit);
-      log.success('Repository details fetched:', repoDetails);
+      logs.push(...repoDetails.logs);
 
-      const lastCommit = repoDetails.lastCommits[0];
+      const lastCommit = repoDetails.details.lastCommits[0];
       
-      // Update the repository with the new information
       const { error: updateError } = await supabaseClient
         .from('repositories')
         .update({
@@ -143,37 +231,24 @@ serve(async (req) => {
           last_commit_date: lastCommit.date,
           last_sync: new Date().toISOString(),
           status: 'synced',
-          default_branch: repoDetails.defaultBranch,
-          branches: repoDetails.branches,
-          recent_commits: repoDetails.lastCommits
+          default_branch: repoDetails.details.defaultBranch,
+          branches: repoDetails.details.branches,
+          recent_commits: repoDetails.details.lastCommits
         })
         .eq('id', sourceRepoId);
 
       if (updateError) {
-        log.error('Error updating repository:', updateError);
+        logs.push(log.error('Error updating repository', updateError));
         throw updateError;
       }
 
-      log.success('Repository updated successfully');
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          details: repoDetails 
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+      logs.push(log.success('Repository updated successfully'));
     }
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        message: `Git ${type} operation completed successfully`,
+        success: true,
+        logs,
         timestamp: new Date().toISOString()
       }),
       { 
@@ -185,12 +260,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    log.error('Error in git-operations function:', error);
+    logs.push(log.error('Operation failed', error));
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
+        logs,
         details: {
           name: error.name,
           message: error.message,
